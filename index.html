@@ -8,15 +8,15 @@
     <link href="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/web/pdf_viewer.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/build/pdf.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf_viewer.min.js" defer></script>
-    <script src="main.js" defer></script>
-    <script src="tts.js" defer></script>
+    <script src="main.js" type = "module" defer></script>
+    <script src="tts.js" type = "module" defer></script>
     <title>PDF-TTS</title>
 </head>
 <body>
     <form id="voice-controls">
         <select name="voice-select" id="voice-select"></select>
         <div>
-            <button type="play">Play</button>
+            <button id="play">Play</button>
         </div>
     </form>
     <div class="nav-bar">
@@ -27,6 +27,14 @@
     <span class="page-info">
         Page <span id="page-num"></span> of <span id="page-count"></span>
     </span>
+    
+    <div>
+        <input type="numeric" id="go-to-number" placeholder="1">
+        <span>
+            <span> of </span><span id="num-pages"></span>
+        </span>
+        <button id="go-to-page">Go</button>
+    </div>
     <div id="pageContainer" class="pdfViewer singlePageView"></div>
     
 </body>
