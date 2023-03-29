@@ -1,12 +1,8 @@
 const synth = window.speechSynthesis;
 
 const voiceSelect = document.querySelector("#voice-select");
+const playBtn = document.querySelector("#play");
 
-let voiceSelected = false;
-let mouseDown = false;
-let onPause = false;
-let currentNode = null;
-let doneSpeaking = true;
 let voices = [];
 
 //populate options
@@ -24,11 +20,11 @@ function populateVoiceList() {
     for (let i = 0; i < voices.length; i++) {
         const option = document.createElement("option");
         option.textContent = `${voices[i].name} (${voices[i].lang})`;
+        option.setAttribute('data-lang', voices[i].lang);
+        option.setAttribute('data-name', voices[i].name);
         if (voices[i].default) {
             option.textContent += ' - DEFAULT';
         }
-        option.setAttribute('data-lang', voices[i].lang);
-        option.setAttribute('data-name', voices[i].name);
         voiceSelect.appendChild(option);
     }
     voiceSelect.selectedIndex = -1;
@@ -39,23 +35,6 @@ populateVoiceList();
 if (speechSynthesis.onvoiceschanged !== undefined) {
     speechSynthesis.onvoiceschanged = populateVoiceList;
 }
-
-document.addEventListener('mousedown', ()=> {
-    mouseDown = true;
-});
-
-document.addEventListener('mouseup', ()=> {
-    mouseDown = false;
-    let node = document.getSelection().anchorNode;
-    if ( node !== undefined && node !== null) {
-        if (node.parentElement !== undefined && node.parentElement !== null) {
-            if (node.parentElement.dir === "ltr") {
-                audioPlayer(node.parentElement);
-            }
-        }  
-    }
-    
-});
 
 function speakLine(line) {
     if (synth.speaking) {
@@ -71,13 +50,17 @@ function speakLine(line) {
         utterThis.onerror = function (event) {
             console.error("SpeechSythesisUtterance.onerror");
         };
-    const selectedOption = voiceSelect.selectedOptions[0].getAttribute("data-name");
-    for (let i = 0; i < voices.length; i++) {
-        if (voices[i].name === selectedOption) {
-            utterThis.voice = voices[i];
-            break;
+    utterThis.voice = voices[0];
+    if (voiceSelect.selectedOptions != undefined) {
+        const selectedOption = voiceSelect.selectedOptions[0].getAttribute("data-name");
+        for (let i = 0; i < voices.length; i++) {
+            if (voices[i].name === selectedOption) {
+                utterThis.voice = voices[i];
+                break;
+            }
         }
     }
+    
     synth.cancel();
     synth.speak(utterThis);
     let r = setInterval(() => {
@@ -92,8 +75,9 @@ function speakLine(line) {
     }
 }
 
-function audioPlayer(node) {
+function audioPlayer(event) {
     assembledText = "";
+    node = event.target;
     while (node !== null && node !== undefined) {
         assembledText += node.textContent;
         node = getNextLine(node);
@@ -108,4 +92,42 @@ function getNextLine(node) {
     }
     return nextNode;
 }
+
+playBtn.addEventListener("click", (e) => {
+    (playBtn.textContent === "Play") ? resumePlayer() : pausePlayer();
+    playBtn.textContent = (playBtn.textContent == "Play") ? "Pause" : "Play";
+    e.preventDefault();
+});
+
+function resumePlayer() {
+    if (synth.paused) {
+        synth.resume();
+    }
+}
+
+function pausePlayer() {
+    if (synth.speaking) {
+        synth.resume();
+    }
+}
+function waitForElm(selector) {
+    return new Promise(resolve => {
+        if (document.querySelector(selector)) {
+            return resolve(document.querySelector(selector));
+        }
+
+        const observer = new MutationObserver(mutations => {
+            if (document.querySelector(selector)) {
+                resolve(document.querySelector(selector));
+                observer.disconnect();
+            }
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    });
+}
+
 
