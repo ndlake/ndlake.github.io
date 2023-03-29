@@ -61,7 +61,8 @@ function speakLine(line) {
             }
         }
     }
-    
+    utterThis.pitch = 1;
+    utterThis.rate = 1;
     synth.cancel();
     synth.speak(utterThis);
     let r = setInterval(() => {
