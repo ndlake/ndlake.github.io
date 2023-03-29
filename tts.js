@@ -1,3 +1,14 @@
+// ADD IMPROVED PAGE NAVIGATION(EITHER BY ENTERING PAGE NUMBER, OR SHOW ALL PAGES AND USE SCROLL WHEEL)
+// EXPERIMENTAL: ADD ABILITY TO READ ENTIRE SECTION AND RETURN A MP3 OR SOMEOTHER AUDIO?
+// EXPERIMENTAL: ASSEMBLE PAGE TEXT INTO SECTIONS, THEN ALLOW USER TO HIGHLIGHT SECTIONS ON HOVER?
+                    // --> AS SECTION IS READ, HIGHLIGHT?
+//Page turning on end of page
+ //           - Pause/Unpause
+  //          - Ignore errant clicks(don't restart, read again when done)
+   //         - Improve handling when switching pages(cancel reading)
+    //        - Improve compatibility between browsers(doesn't work on
+
+//USE MUTATION OBSERVER TO CHECK IF TEXT ELEMENTS ARE LOADED, ADD EVENTLISTENERS
 const synth = window.speechSynthesis;
 
 const voiceSelect = document.querySelector("#voice-select");
@@ -75,9 +86,9 @@ function speakLine(line) {
     }
 }
 
-function audioPlayer(event) {
-    assembledText = "";
-    node = event.target;
+export function audioPlayer(event) {
+    let assembledText = "";
+    let node = event.target;
     while (node !== null && node !== undefined) {
         assembledText += node.textContent;
         node = getNextLine(node);
