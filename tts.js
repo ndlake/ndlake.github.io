@@ -1,8 +1,6 @@
-
 const synth = window.speechSynthesis;
 
 const voiceSelect = document.querySelector("#voice-select");
-const playBtn = document.querySelector("#play");
 
 let voices = [];
 
@@ -77,14 +75,16 @@ function speakLine(line) {
     }
 }
 
-export function audioPlayer(event) {
+export function audioPlayer(text) {
+    /*
     let assembledText = "";
     let node = event.target;
     while (node !== null && node !== undefined) {
         assembledText += node.textContent;
         node = getNextLine(node);
     }
-    speakLine(assembledText);
+    */
+    speakLine(text);
 }
 
 function getNextLine(node) {
@@ -95,6 +95,7 @@ function getNextLine(node) {
     return nextNode;
 }
 
+const playBtn = document.querySelector("#play");
 playBtn.addEventListener("click", (e) => {
     (playBtn.textContent === "Play") ? resumePlayer() : pausePlayer();
     playBtn.textContent = (playBtn.textContent == "Play") ? "Pause" : "Play";
@@ -103,33 +104,16 @@ playBtn.addEventListener("click", (e) => {
 
 function resumePlayer() {
     if (synth.paused) {
-        synth.resume();
+        //synth.resume();
+        console.log("Resume last token if on same page, if on new page, start at beginning");
     }
 }
 
 function pausePlayer() {
     if (synth.speaking) {
-        synth.resume();
+        synth.cancel();
     }
 }
-function waitForElm(selector) {
-    return new Promise(resolve => {
-        if (document.querySelector(selector)) {
-            return resolve(document.querySelector(selector));
-        }
 
-        const observer = new MutationObserver(mutations => {
-            if (document.querySelector(selector)) {
-                resolve(document.querySelector(selector));
-                observer.disconnect();
-            }
-        });
-
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
-    });
-}
 
 
