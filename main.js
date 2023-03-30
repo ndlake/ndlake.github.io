@@ -16,15 +16,65 @@ const canvas = document.querySelector('#pdf-render');
 const container = document.getElementById("pageContainer");
 const eventBus = new pdfjsViewer.EventBus();
 
+function highlightSections(e) {
+   let id = e.target.getAttribute('sentence-id');
+   let sectionElements = document.querySelectorAll(`span[sentence-id='${id}']`);
+   sectionElements.forEach(e => {
+        e.classList.add('highlight');
+   });
+}
+function removeHighlight(e) {
+    let id = e.target.getAttribute('sentence-id');
+    let sectionElements = document.querySelectorAll(`span[sentence-id='${id}']`)
+    sectionElements.forEach(e => {
+        e.classList.remove('highlight');
+    });   
+}
+function activateTTS(e) {
+    let id = e.target.getAttribute('sentence-id');
+    let sectionElements = document.querySelectorAll(`span[sentence-id='${id}']`);
+    let text = "";
+    sectionElements.forEach(e => {
+        text += e.textContent;
+    });
+    tts.audioPlayer(text);
+}
 function activateTextListeners() {
-    console.log("activate!");
-
     let textElements = document.querySelectorAll("span[dir='ltr']");
-    console.log(textElements.length);
+    let id = 1;
+    let prevFontSize = null;
     textElements.forEach((e) => {
-        e.addEventListener("click", tts.audioPlayer);
-        e.classList.add("textObject");
-        //console.log(e.textContent);
+        const text = e.textContent;
+        e.addEventListener("mouseover", highlightSections);
+        e.addEventListener("mouseout", removeHighlight);
+        e.addEventListener("click", activateTTS);
+        if (prevFontSize == null) {
+            prevFontSize = e.style.fontSize;
+        } else if (prevFontSize !== e.style.fontSize) {
+            id++;
+            prevFontSize = e.style.fontSize;
+        }
+        e.textContent = "";
+        let newTextElement = document.createElement("span");
+        newTextElement.setAttribute('sentence-id', id);
+        newTextElement.style.position = "relative"; 
+        let prevChar = "";
+        for (let i = 0; i < text.length; i++) {
+            if (prevChar == "." || prevChar == "?" || prevChar == "!") {
+                //push newTextElement, create new element with updated id
+                e.appendChild(newTextElement);
+                newTextElement = document.createElement("span");
+                id++;
+                newTextElement.setAttribute('sentence-id', id);
+                newTextElement.style.position = "relative"; 
+            }
+            newTextElement.textContent += text[i];
+            prevChar = text[i];
+        }
+        e.appendChild(newTextElement);
+        if (prevChar == "." || prevChar == "?" || prevChar == "!") {
+            id++;
+        }
     });
 }
 
