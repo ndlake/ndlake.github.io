@@ -2,8 +2,13 @@ const synth = window.speechSynthesis;
 
 const voiceSelect = document.querySelector("#voice-select");
 
+let curVoice = null;
 let voices = [];
 
+
+voiceSelect.addEventListener('change', (e)=>{
+    curVoice = voiceSelect.selectedOptions[0].getAttribute("data-name");
+});
 //populate options
 function populateVoiceList() {
     voices = synth.getVoices().sort(function(x, y) {
@@ -38,61 +43,49 @@ if (speechSynthesis.onvoiceschanged !== undefined) {
 function speakLine(line) {
     if (synth.speaking) {
         console.error("synth.speaking");
-        return;
+        return Promise.reject(new Error("SpeechSYnth is already speaking."));
     }
     if (line !== "") {
-        const utterThis = new SpeechSynthesisUtterance(line);
-        utterThis.onend = function (event) {
-            console.log("SpeechSynthesisUtterance.onend");
-            return 
-        };
-        utterThis.onerror = function (event) {
-            console.error("SpeechSythesisUtterance.onerror");
-        };
-    utterThis.voice = voices[0];
-    if (voiceSelect.selectedOptions != undefined) {
-        const selectedOption = voiceSelect.selectedOptions[0].getAttribute("data-name");
-        for (let i = 0; i < voices.length; i++) {
-            if (voices[i].name === selectedOption) {
-                utterThis.voice = voices[i];
-                break;
+        return new Promise((resolve, reject) => {
+            const utterThis = new SpeechSynthesisUtterance(line);
+            utterThis.onend = function (event) {
+                clearInterval(r);
+                synth.cancel();
+                resolve();
+            };
+            utterThis.onerror = function (event) {
+                synth.cancel();
+                reject();
+            };
+            if (curVoice == null) {
+                alert("Please select a voice from the drop down");
+                reject();
+                return;
             }
-        }
-    }
-    utterThis.pitch = 1;
-    utterThis.rate = 1;
-    synth.cancel();
-    synth.speak(utterThis);
-    let r = setInterval(() => {
-        console.log(synth.speaking);
-        if (!synth.speaking) {
-            clearInterval(r);
-        } else {
-            synth.pause();
-            synth.resume();
-        }
-      }, 14000);
+            for (let i = 0; i < voices.length; i++) {
+                if (voices[i].name === curVoice) {
+                    utterThis.voice = voices[i];
+                    break;
+                }
+            }
+            utterThis.pitch = 1;
+            utterThis.rate = 1;
+            synth.cancel();
+            synth.speak(utterThis);
+            var r = setInterval(() => {
+                console.log(synth.speaking, "interval loop");
+                if (!synth.speaking) {
+                    clearInterval(r);
+                } else {
+                    synth.pause();
+                    synth.resume();
+                }
+            }, 14000);
+            });
     }
 }
-
-export function audioPlayer(text) {
-    /*
-    let assembledText = "";
-    let node = event.target;
-    while (node !== null && node !== undefined) {
-        assembledText += node.textContent;
-        node = getNextLine(node);
-    }
-    */
-    speakLine(text);
-}
-
-function getNextLine(node) {
-    let nextNode = node.nextSibling;
-    while (nextNode !== undefined && nextNode !== null && nextNode.dir == "") {
-        nextNode = nextNode.nextSibling;
-    }
-    return nextNode;
+export async function audioPlayer(text) {
+    return await speakLine(text);
 }
 
 const playBtn = document.querySelector("#play");
