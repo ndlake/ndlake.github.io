@@ -5,13 +5,15 @@ const voiceSelect = document.querySelector("#voice-select");
 let curVoice = null;
 let voices = [];
 
+let curLine = null;
 
-voiceSelect.addEventListener('change', (e)=>{
+
+voiceSelect.addEventListener('change', (e) => {
     curVoice = voiceSelect.selectedOptions[0].getAttribute("data-name");
 });
 //populate options
 function populateVoiceList() {
-    voices = synth.getVoices().sort(function(x, y) {
+    voices = synth.getVoices().sort(function (x, y) {
         const xName = x.name.toUpperCase();
         const yName = y.name.toUpperCase();
         if (xName < yName) {
@@ -55,11 +57,11 @@ function speakLine(line) {
             };
             utterThis.onerror = function (event) {
                 synth.cancel();
-                reject();
+                resolve();
             };
             if (curVoice == null) {
                 alert("Please select a voice from the drop down");
-                reject();
+                resolve();
                 return;
             }
             for (let i = 0; i < voices.length; i++) {
@@ -81,31 +83,24 @@ function speakLine(line) {
                     synth.resume();
                 }
             }, 14000);
-            });
+        });
     }
 }
 export async function audioPlayer(text) {
+    if (text == null) {
+        return;
+    }
     return await speakLine(text);
 }
 
-const playBtn = document.querySelector("#play");
-playBtn.addEventListener("click", (e) => {
-    (playBtn.textContent === "Play") ? resumePlayer() : pausePlayer();
-    playBtn.textContent = (playBtn.textContent == "Play") ? "Pause" : "Play";
-    e.preventDefault();
-});
-
-function resumePlayer() {
-    if (synth.paused) {
-        //synth.resume();
-        console.log("Resume last token if on same page, if on new page, start at beginning");
+export function resumePlayer() {
+    if (curLine != null) {
+        audioPlayer(curLine);
     }
 }
 
-function pausePlayer() {
-    if (synth.speaking) {
-        synth.cancel();
-    }
+export function pausePlayer() {
+    synth.cancel();
 }
 
 
