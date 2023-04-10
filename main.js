@@ -10,13 +10,29 @@ let pdfDoc = null,
     pageNum = 1,
     pageRendering = false,
     pageNumPending = null,
-    pdfPageView = null;;
+    pdfPageView = null,
+    pageReset = false,
+    playerPaused,
+    curLine = null,
+    readWhenLoaded = false;
 let OGscale = 1;//being updated in renderPage
 let numIDs = 0;
 const canvas = document.querySelector('#pdf-render');
 const container = document.getElementById("pageContainer");
 const eventBus = new pdfjsViewer.EventBus();
 
+const playBtn = document.querySelector("#play");
+playBtn.addEventListener("click", (e) => {
+    (playBtn.textContent === "Play") ? resumePlayer() : pausePlayer();
+    e.preventDefault();
+});
+function updatePlayBtn(action) {
+    if (action == "pause") {
+        playBtn.textContent = "Pause";
+    } else {
+        playBtn.textContent = "Play";
+    } 
+}
 function highlightSections(e) {
    let id = e.target.getAttribute('sentence-id');
    let sectionElements = document.querySelectorAll(`span[sentence-id='${id}']`);
@@ -31,16 +47,65 @@ function removeHighlight(e) {
         e.classList.remove('highlight');
     });   
 }
+
+function isReadingComplete(id, numIDs) {
+    return id >= numIDs;
+}
+function beginReading(id) {
+    let desiredElement = document.querySelector(`span[sentence-id='${id}']`);
+    if (desiredElement == null) {
+        onNextPage();
+        return;
+    }
+    activateTTS(desiredElement);
+}
+function highlightSentenceBeingRead(e) {
+    e.classList.add('read-hightlight');
+}
+function removeHighlightSentenceBeingRead(e) {
+    e.classList.remove('read-hightlight');
+}
 async function activateTTS(e) {
-    let id = e.target.getAttribute('sentence-id');
-    for (let i = id; i < (numIDs + 1); i++) {
+    pageReset = true;
+    curLine = null;
+    updatePlayBtn("pause");
+    let id = null;
+    tts.pausePlayer();
+    if (e.target != null) {
+        id = e.target.getAttribute('sentence-id');
+    } else {
+        id = e.getAttribute('sentence-id');
+    }
+    pageReset = false;
+    playerPaused = false;
+    let i = id;
+    for (i = id; i < (numIDs + 1); i++) {
+        if (pageReset) {
+            pageReset = false;
+            break;
+        }
         let sectionElements = document.querySelectorAll(`span[sentence-id='${id}']`);
         let text = "";
         sectionElements.forEach(e => {
             text += e.textContent;
+            highlightSentenceBeingRead(e);
         });
         await tts.audioPlayer(text);
         id++;
+        sectionElements.forEach(e => {
+            removeHighlightSentenceBeingRead(e);
+        });
+        if (playerPaused) {
+            curLine = sectionElements[0];
+            break;
+        }
+    }
+    if (!playerPaused && isReadingComplete(id, numIDs)) {
+        //check if we reached the end of the word list
+        readWhenLoaded = true;
+        onNextPage();
+    } else {
+        readWhenLoaded = false;
     }
     console.log("Finished tts task");
 }
@@ -85,6 +150,9 @@ function activateTextListeners() {
             numIDs++;
         }
     });
+    if (readWhenLoaded) {
+        beginReading(1);
+    }
 }
 
 //render page
@@ -107,6 +175,27 @@ function renderPage(num) {
     document.getElementById('go-to-number').placeholder = num;
 }
 
+function resumePlayer() {
+    if (curLine != null) {
+        updatePlayBtn("pause");
+        activateTTS(curLine);
+    }
+}
+
+function pausePlayer() {
+    playerPaused = true;
+    updatePlayBtn("play");
+    tts.pausePlayer();
+}
+
+function resetPagePlayer() {
+    pageReset = true;
+    tts.pausePlayer();
+    updatePlayBtn("play");
+    playerPaused = false;
+    curLine = null;
+}
+
 function queueRenderPage(num) {
     if (pageRendering) {
         pageNumPending = num;
@@ -119,6 +208,7 @@ function onPrevPage() {
     if (pdfDoc === null || pageNum <= 1) {
         return;
     }
+    resetPagePlayer();
     pageNum--;
     queueRenderPage(pageNum);
 }
@@ -127,10 +217,12 @@ document.getElementById('prev-page').addEventListener('click', onPrevPage);
 
 function onNextPage() {
     if (pdfDoc === null||pageNum >= pdfDoc.numPages ) {
-        return;
+        return false;
     }
+    resetPagePlayer();
     pageNum++;
     queueRenderPage(pageNum);
+    return true;
 }
 document.getElementById('next-page').addEventListener('click', onNextPage);
 
@@ -140,6 +232,7 @@ function loadInputPage() {
         return;
     }
     if (pageInputElement.value !== "" && Number(pageInputElement.value) <= pdfDoc.numPages) {
+        resetPagePlayer();
         pageNum = Number(pageInputElement.value);
         queueRenderPage(pageNum);
         pageInputElement.value = "";
